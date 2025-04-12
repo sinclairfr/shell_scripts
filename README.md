@@ -1,14 +1,34 @@
 # 🐚 Shell Scripts Collection
 
-A collection of useful shell scripts for various automation tasks.
+A collection of shell scripts for file management and renaming operations.
 
 ## 📋 Scripts
 
 ### 🔄 `simplify`
-A script to simplify file operations and management.
+A smart file renaming script that:
+- Converts filenames to ASCII (removes accents)
+- Converts to lowercase
+- Replaces non-alphanumeric sequences with underscores
+- Preserves file extensions
+- Creates a log file for potential undo operations
+- Supports dry-run mode for testing
+
+Usage:
+```bash
+./simplify [--dry-run] [--log <logfile>] file1 file2 ...
+```
 
 ### ↩️ `undo_rename`
-A script to help revert file renaming operations.
+A script to revert file renaming operations by:
+- Reading a log file created by `simplify`
+- Reverting files to their original names
+- Processing operations in reverse order
+- Safely handling existing files
+
+Usage:
+```bash
+./undo_rename [--log <logfile>]
+```
 
 ## 🚀 Getting Started
 
@@ -24,20 +44,34 @@ chmod +x simplify undo_rename
 
 3. Run the scripts:
 ```bash
-./simplify
+# To rename files:
+./simplify file1.txt file2.jpg
+
+# To undo renaming:
 ./undo_rename
 ```
 
-## 📝 Usage
+## 📝 Usage Examples
 
 ### Simplify Script
 ```bash
-./simplify [options]
+# Basic usage
+./simplify "Mon Fichier.txt" "Photo 2023.jpg"
+
+# Dry run to preview changes
+./simplify --dry-run "Mon Fichier.txt"
+
+# Custom log file
+./simplify --log custom.log "Mon Fichier.txt"
 ```
 
 ### Undo Rename Script
 ```bash
-./undo_rename [options]
+# Basic usage (uses default rename.log)
+./undo_rename
+
+# Custom log file
+./undo_rename --log custom.log
 ```
 
 ## 🤝 Contributing
@@ -50,19 +84,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## ⭐ Features
 
-- 🛠️ Simple and efficient shell scripts
-- 🔧 Easy to use and modify
-- 📦 Lightweight and portable
-- 🔄 Automation made easy
+- 🎯 Smart file renaming with accent removal
+- 🔄 Safe undo functionality
+- 📝 Detailed logging
+- 🧪 Dry-run mode for testing
+- 🛡️ Safety checks to prevent data loss
 
 ## 🛡️ Requirements
 
 - Bash shell
+- `iconv` command for character conversion
+- `tac` command for log file reversal
 - Basic Unix/Linux commands
-- Permissions to execute scripts
 
 ## 📚 Documentation
 
-For detailed documentation of each script, please refer to the comments within the script files.
+For detailed documentation, refer to the comments within each script file.
 
 ---
+
+Made with ❤️ by [Your Name]

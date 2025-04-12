@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+#
+# undo_rename.sh
+#
+# Lit un fichier journal (ex: "rename.log") qui contient
+# des lignes sous forme "ancienChemin|nouveauChemin"
+# et tente de faire l'opération inverse : mv nouveauChemin ancienChemin
+# dans l'ordre inverse pour annuler proprement.
+#
+# Usage:
+#   undo_rename.sh [--log <fichier_log>]
+#
+
+LOGFILE="rename.log"
+
+# Parse options
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --log)
+      LOGFILE="$2"
+      shift 2
+      ;;
+    -*)
+      echo "Option inconnue: $1"
+      exit 1
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [ ! -f "$LOGFILE" ]; then
+  echo "Fichier de log introuvable: $LOGFILE"
+  exit 1
+fi
+
+echo "Annulation à partir du journal: $LOGFILE"
+
+# 'tac' permet de lire le fichier du bas vers le haut (ordre inverse)
+tac "$LOGFILE" | while IFS= read -r line; do
+  oldpath="$(echo "$line" | cut -d '|' -f1)"
+  newpath="$(echo "$line" | cut -d '|' -f2)"
+
+  # On vérifie si le "nouveauFichier" existe encore
+  if [ -f "$newpath" ]; then
+    # Évite d'écraser un fichier qui existerait déjà au oldpath
+    if [ -e "$oldpath" ]; then
+      echo "SKIP revert: '$oldpath' existe déjà. Impossible de faire mv '$newpath' '$oldpath'."
+      continue
+    fi
+
+    mv "$newpath" "$oldpath"
+    echo "Reverted: '$newpath' -> '$oldpath'"
+  else
+    echo "SKIP revert: '$newpath' n'existe pas (déjà supprimé ou renommé?)."
+  fi
+done
+
+# On peut, si on le souhaite, supprimer le log après revert:
+# rm -f "$LOGFILE"

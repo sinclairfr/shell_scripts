@@ -103,4 +103,3 @@ For detailed documentation, refer to the comments within each script file.
 
 ---
 
-Made with ❤️ by [Your Name]

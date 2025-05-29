@@ -4,6 +4,7 @@
 #
 # Renomme uniquement les *fichiers* en préservant les répertoires.
 # Transformations appliquées au nom de fichier (basename) :
+#   - Nettoyage préliminaire de certains caractères problématiques (comme ｜)
 #   - Convertir en ASCII (iconv) pour supprimer les accents
 #   - Mettre en minuscules
 #   - Remplacer toute séquence de non-alphanumérique par "_"
@@ -13,7 +14,6 @@
 #
 # Usage:
 #   smart_rename.sh [--dry-run] [--log <fichier_log>] file1 file2 ...
-#
 
 DRY_RUN=0
 LOGFILE="rename.log"
@@ -50,7 +50,7 @@ echo "Journal de renommage: $LOGFILE"
 
 # Pour chaque chemin passé en paramètre
 for file in "$@"; do
-  
+
   # Vérifie que c'est un fichier régulier
   if [ ! -f "$file" ]; then
     echo "Skipping '$file': pas un fichier régulier."
@@ -61,7 +61,7 @@ for file in "$@"; do
   dirpath="$(dirname "$file")"
   filename="$(basename "$file")"
 
-  # Sépare le nom et l'extension (la partie après le dernier point)
+  # Sépare le nom et l'extension
   if [[ "$filename" == *.* ]]; then
     base="${filename%.*}"
     extension="${filename##*.}"
@@ -70,20 +70,16 @@ for file in "$@"; do
     extension=""
   fi
 
-  # Convertir le base name en ASCII (sans accent), puis minuscule,
-  # puis remplacer toute séquence de non-alphanumérique par "_".
-  # Enfin, on vire les "_" en début et fin.
+  # Nettoyage, conversion ASCII, minuscule, remplacement des caractères
   newbase="$(echo "$base" \
-    | iconv -f UTF-8 -t ASCII//TRANSLIT 2>/dev/null \
+    | sed 's/｜/|/g' \
+    | iconv -f UTF-8 -t ASCII//TRANSLIT//IGNORE 2>/dev/null \
     | tr '[:upper:]' '[:lower:]' \
     | sed 's/[^[:alnum:]]\+/_/g; s/^_//; s/_$//')"
 
-  # Extension en minuscules
   newext="$(echo "$extension" | tr '[:upper:]' '[:lower:]')"
 
-  # Reconstruit le nouveau nom complet (basename + extension)
   if [ -n "$newext" ]; then
-    # Si le base name est vide après transformation, on skip
     if [ -z "$newbase" ]; then
       echo "Skipping '$file': le nouveau nom de base est vide !"
       continue
@@ -93,29 +89,23 @@ for file in "$@"; do
     newfilename="$newbase"
   fi
 
-  # Chemin complet de destination
   newpath="${dirpath}/${newfilename}"
 
-  # Si pas de changement de nom, on skip
   if [ "$newpath" = "$file" ]; then
     echo "No changes for '$file'."
     continue
   fi
 
-  # Si le fichier cible existe déjà, on skip
   if [ -e "$newpath" ]; then
     echo "Cannot rename '$file' -> '$newpath': file already exists!"
     continue
   fi
 
-  # Mode Dry-run : on affiche seulement
   if [ $DRY_RUN -eq 1 ]; then
     echo "DRY RUN: '$file' -> '$newpath'"
   else
-    # Renommage effectif
     mv "$file" "$newpath"
     echo "Renamed: '$file' -> '$newpath'"
-    # On journalise l'opération sous forme "ancien|nouveau"
     echo "$file|$newpath" >> "$LOGFILE"
   fi
 

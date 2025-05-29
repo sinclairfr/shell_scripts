@@ -1,24 +1,8 @@
 #!/usr/bin/env bash
-#
-# smart_rename.sh
-#
-# Renomme uniquement les *fichiers* en préservant les répertoires.
-# Transformations appliquées au nom de fichier (basename) :
-#   - Nettoyage préliminaire de certains caractères problématiques (comme ｜)
-#   - Convertir en ASCII (iconv) pour supprimer les accents
-#   - Mettre en minuscules
-#   - Remplacer toute séquence de non-alphanumérique par "_"
-#   - Supprimer "_" au début et à la fin
-#   - Conserver l'extension
-# Enregistre un journal "rename.log" pour une éventuelle annulation.
-#
-# Usage:
-#   smart_rename.sh [--dry-run] [--log <fichier_log>] file1 file2 ...
 
 DRY_RUN=0
 LOGFILE="rename.log"
 
-# Parse options
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --dry-run)
@@ -39,7 +23,6 @@ while [[ "$#" -gt 0 ]]; do
   esac
 done
 
-# Vérification qu'il reste au moins un fichier
 if [ $# -eq 0 ]; then
   echo "Usage: $(basename "$0") [--dry-run] [--log <fichier_log>] <files...>"
   exit 1
@@ -48,20 +31,15 @@ fi
 echo "Journal de renommage: $LOGFILE"
 [ $DRY_RUN -eq 1 ] && echo "Mode DRY RUN activé (aucune modification réelle)"
 
-# Pour chaque chemin passé en paramètre
 for file in "$@"; do
-
-  # Vérifie que c'est un fichier régulier
   if [ ! -f "$file" ]; then
     echo "Skipping '$file': pas un fichier régulier."
     continue
   fi
 
-  # Récupère le répertoire ET le nom de fichier
   dirpath="$(dirname "$file")"
   filename="$(basename "$file")"
 
-  # Sépare le nom et l'extension
   if [[ "$filename" == *.* ]]; then
     base="${filename%.*}"
     extension="${filename##*.}"
@@ -70,20 +48,16 @@ for file in "$@"; do
     extension=""
   fi
 
-  # Nettoyage, conversion ASCII, minuscule, remplacement des caractères
   newbase="$(echo "$base" \
-    | sed 's/｜/|/g' \
+    | sed 's/｜/ /g' \
     | iconv -f UTF-8 -t ASCII//TRANSLIT//IGNORE 2>/dev/null \
     | tr '[:upper:]' '[:lower:]' \
-    | sed 's/[^[:alnum:]]\+/_/g; s/^_//; s/_$//')"
+    | sed -E 's/[^a-z0-9]+/_/g; s/^_+|_+$//g; s/_+/_/g')"
 
   newext="$(echo "$extension" | tr '[:upper:]' '[:lower:]')"
 
   if [ -n "$newext" ]; then
-    if [ -z "$newbase" ]; then
-      echo "Skipping '$file': le nouveau nom de base est vide !"
-      continue
-    fi
+    [ -z "$newbase" ] && { echo "Skipping '$file': nouveau nom vide."; continue; }
     newfilename="${newbase}.${newext}"
   else
     newfilename="$newbase"
@@ -108,5 +82,4 @@ for file in "$@"; do
     echo "Renamed: '$file' -> '$newpath'"
     echo "$file|$newpath" >> "$LOGFILE"
   fi
-
 done
